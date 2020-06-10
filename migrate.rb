@@ -4,12 +4,13 @@ require 'octopoller'
 require 'uri'
 
 # Enter your details/credentials here
-GL_SERVER = ""
+GL_SERVER = "gitlab.focsaneanu.net"
 GL_PRIVATE_TOKEN = ""
+GL_USERNAME=""
 GH_PRIVATE_TOKEN = ""
-GH_ORG_NAME = ""
+GH_ORG_NAME = "GeorgFoc" # Or Username
 
-GL_ENDPOINT = "http://#{GL_SERVER}/api/v4"
+GL_ENDPOINT = "https://#{GL_SERVER}/api/v4"
 PROGRESS_FILE_NAME = "./progress.txt"
 
 # Read or create progress file
@@ -29,14 +30,14 @@ end
 # Create an authorised URL to the repo on GL using the GL private token
 def gl_authed_uri(gl_project)
   gl_repo_uri = URI.parse(gl_project.http_url_to_repo)
-  
+
   "http://oauth2:#{GL_PRIVATE_TOKEN}@#{GL_SERVER}#{gl_repo_uri.path}"
 end
 
 gh_client = Octokit::Client.new(:access_token => GH_PRIVATE_TOKEN)
 
 # Fetch a list of all Gitlab projects
-gl_projects = Gitlab.projects.auto_paginate
+gl_projects = Gitlab.user_projects("#{GL_USERNAME}").auto_paginate
 puts "Found #{gl_projects.length} projects."
 
 # Loop through each GL project
@@ -49,8 +50,9 @@ gl_projects.each do |gl_project|
   end
 
   # The repo to import to on GH
+  # destination_repo = "#{GH_ORG_NAME}/#{gl_project.name.gsub(' ', '-')}"
   destination_repo = "#{GH_ORG_NAME}/#{gl_project.name.gsub(' ', '-')}"
-  
+
   # Ensure the GL user is a member of the project we want to export
   begin Gitlab.add_team_member(gl_project.id, 4, 40)
     puts "You've been successfully added as a maintainer of this project on GitLab."
@@ -59,14 +61,15 @@ gl_projects.each do |gl_project|
   end
 
   # Create the repository on GH or show an error
-  begin gh_client.create_repository(gl_project.name, organization: GH_ORG_NAME, private: true)
+  # Change the next line when you want to use an organization or username
+  # begin gh_client.create_repository(gl_project.name, organization: GH_ORG_NAME, private: true)
+  begin gh_client.create_repository(gl_project.name, private: true)
     puts "New repo created on GitHub."
   rescue Octokit::UnprocessableEntity => e
     # If error everything else could fail, unless the error was that the repo already existed
     puts "Error creating repository on GitHub: #{e.message}"
   end
-
-  # Cancel any GH import for this repo - mainly used for testing
+  _client = Octokit::Client.new(:access_token => GH_PRIVATE_TOKEN)  # Cancel any GH import for this repo - mainly used for testing
   gh_client.cancel_source_import(destination_repo, accept: Octokit::Preview::PREVIEW_TYPES[:source_imports])
 
   puts "Starting import to GitHub (this may take some time)..."
@@ -89,7 +92,7 @@ gl_projects.each do |gl_project|
       nil
     else
       :re_poll
-    end 
+    end
   end
 
   # Log this project as imported
