@@ -4,11 +4,11 @@ require 'octopoller'
 require 'uri'
 
 # Enter your details/credentials here
-GL_SERVER = "gitlab.focsaneanu.net"
+GL_SERVER = ""
 GL_PRIVATE_TOKEN = ""
 GL_USERNAME=""
 GH_PRIVATE_TOKEN = ""
-GH_ORG_NAME = "GeorgFoc" # Or Username
+GH_ORG_NAME = "" # Or Username
 
 GL_ENDPOINT = "https://#{GL_SERVER}/api/v4"
 PROGRESS_FILE_NAME = "./progress.txt"
